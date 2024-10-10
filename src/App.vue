@@ -11,40 +11,20 @@ export default {
       per_page: 10,
       page: 1,
       countpages: 1,
-      page_reduct: false
+      page_reduct: false,
+      inputValue: null,
+      filterValue: null,
     }
   },
   methods: {
     getGithub() {
-      const inputValue = document.getElementById('search').value.trim().replace(' ', '-');
-      const selectValue = document.getElementById('filter').value;
-      console.log(inputValue)
-      if (inputValue.length > 3) {
-        if (selectValue.value !== 'Seleziona una') {
-          console.log(inputValue.length, selectValue)
-          axios({
-            method: 'get',
-            url: `https://api.github.com/search/${selectValue}?q=${inputValue}&page=${this.page}&per_page=${this.per_page}`,
-            per_page: 50,
-            headers: {
-              "x-github-api-version": "2022-11-28",
-            },
-          })
-            .then(resp => {
-              console.log(resp);
-              this.data = resp.data.items;
-              this.countpages = Math.floor(resp.data.total_count / this.per_page);
-              if (this.countpages > 10) {
-                this.page_reduct = []
-                for (let index = 1; index <= 10; index++) {
-                  this.page_reduct.push(index);
+      this.inputValue = document.getElementById('search').value.trim().replace(' ', '-');
+      this.filterValue = document.getElementById('filter').value;
 
-                }
-              }
-
-            }).catch((error) => {
-              console.error(error)
-            })
+      if (this.inputValue.length > 3) {
+        if (this.filterValue !== 'Seleziona una') {
+          console.log(this.inputValue.length, this.filterValue)
+          this.callAPI();
         } else {
           throw new ('devi selezionare un filtro')
         }
@@ -52,6 +32,31 @@ export default {
       } else {
         throw new ("deve essere di almeno tre caratteri la parola")
       }
+    },
+    callAPI() {
+      axios({
+        method: 'get',
+        url: `https://api.github.com/search/${this.filterValue}?q=${this.inputValue}&page=${this.page}&per_page=${this.per_page}`,
+        per_page: 50,
+        headers: {
+          "x-github-api-version": "2022-11-28",
+        },
+      })
+        .then(resp => {
+          console.log(resp);
+          this.data = resp.data.items;
+          this.countpages = Math.ceil(resp.data.total_count / this.per_page);
+          if (this.countpages > 10) {
+            this.page_reduct = []
+            for (let index = 1; index <= 10; index++) {
+              this.page_reduct.push(index);
+
+            }
+          }
+
+        }).catch((error) => {
+          console.error(error)
+        })
     }
 
   },
@@ -108,19 +113,27 @@ export default {
             <div class="card_background">
 
             </div>
-            <img class="img_card" :src="data.owner.avatar_url" alt="">
+            <img class="img_card" :src="data.owner.avatar_url" alt="" v-if="data.owner">
+            <img class="img_card" :src="data.avatar_url" alt="" v-else>
+
 
           </div>
 
           <div class="card-body">
-            <h4 class="card-title">{{ data.full_name }}</h4>
-            <p class="card-text">{{ data.description }}</p>
-            <div class="star_card d-flex align-items-center gap-2">
+            <h4 class="card-title" v-if="data.full_name">{{ data.full_name }}</h4>
+            <h4 class="card-title" v-else>{{ data.login }}</h4>
+
+            <p class="card-text" v-if="data.description">{{ data.description }}</p>
+            <p class="card-text" v-else>
+              <strong>Profilo: </strong>
+              <span>{{ data.type }}</span>
+            </p>
+            <div class="star_card d-flex align-items-center gap-2" v-if="data.stargazers_count">
               <i class="fa fa-star" aria-hidden="true"></i>
               <span>{{ data.stargazers_count }}</span>
 
             </div>
-            <div class="issue_card d-flex align-items-center gap-2">
+            <div class="issue_card d-flex align-items-center gap-2" v-if="data.open_issues_count">
               <i class="fa-solid fa-circle-exclamation"></i>
               <span>{{ data.open_issues_count }}</span>
             </div>
@@ -130,7 +143,8 @@ export default {
           <div class="card-footer text-center">
             <a :href="data.html_url" class="text-decoration-none text-dark" target="_blank">
 
-              Vai alla repo
+              <span v-if="data.owner">Vai alla repo</span>
+              <span v-else>Vai al profilo</span>
               <i class="fa-solid fa-arrow-up-right-from-square"></i>
             </a>
           </div>
@@ -138,12 +152,18 @@ export default {
         </div>
       </div>
 
-      <div class="paginate">
-
-        <i class="fa fa-arrow-left" aria-hidden="true" v-if="this.page > 1"></i>
+      <div class="paginate" v-if="this.countpages > 1">
+        <div class="paginate_arrow_left" v-if="this.page > 1">
+          <i class="fa fa-arrow-left" aria-hidden="true"></i>
+        </div>
         <span v-for="n in this.countpages" v-if="this.page_reduct === false">{{ n }}</span>
         <span v-else v-for="number in this.page_reduct">{{ number }}</span>
-        <i class="fa fa-arrow-right" aria-hidden="true" v-if="this.page < this.countpages"></i>
+
+        <div class="paginate_arrow_right" v-if="this.page < this.countpages">
+          <i class="fa fa-arrow-right" aria-hidden="true"></i>
+
+        </div>
+
       </div>
     </div>
   </main>
