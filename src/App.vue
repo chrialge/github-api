@@ -18,25 +18,47 @@ export default {
     }
   },
   methods: {
+
+    /**
+     * questa funzione prende il risultato dell'input con il filtro e prende i risultati
+     */
     getGithub() {
+
+      // salvo il valore del input
       this.inputValue = document.getElementById('search').value.trim().replace(' ', '-');
+
+      // salvo il valore del filtraggio
       this.filterValue = document.getElementById('filter').value;
 
+      // se e sopra di tre il valore di input
       if (this.inputValue.length > 3) {
+
+        // se il filtro e diverso da 
         if (this.filterValue !== 'Seleziona una') {
+
+          // il loading diventa vero
           this.Loading = true;
-          console.log(this.inputValue.length, this.filterValue)
+
+          // invoco la funzione
           this.callAPI();
         } else {
+
+          // comparira l'errore in console
           throw new ('devi selezionare un filtro')
         }
 
       } else {
+        // comparirea l'errore in console
         throw new ("deve essere di almeno tre caratteri la parola")
       }
     },
 
+    /**
+     * funzione dove inseririsco la logica della request api
+     */
     callAPI() {
+
+      // faccio una chiamata api 
       axios({
         method: 'get',
         url: `https://api.github.com/search/${this.filterValue}?q=${this.inputValue}&page=${this.page}&per_page=${this.per_page}`,
@@ -46,67 +68,129 @@ export default {
         },
       })
         .then(resp => {
-          console.log(resp);
+
+          // salvo i risultati nell'istanza data
           this.data = resp.data.items;
+
+          // se countapages e uno
           if (this.countpages === 1) {
+
+            // salvo il numero di pagine che ci sono
             this.countpages = Math.ceil(resp.data.total_count / this.per_page);
+
+            // seci sono piu di 10 pagine
             if (this.countpages > 10) {
+
+              // creo un array che usero per il paginate
               this.page_reduct = []
+
+              // itero per i prime dieci pagine
               for (let index = 1; index <= 10; index++) {
+                // pusho il numero in page_reduct
                 this.page_reduct.push(index);
 
               }
             }
           }
 
+          // loading diventa falso
           this.Loading = false
         }).catch((error) => {
+          // faccio vedere il tipo di errore della chiamata
           console.error(error)
         })
     },
+
+    /**
+     * funzione che ti porta alla pagina che clicci
+     * @param number numero della pagina
+     */
     goToPage(number) {
+
+      // inserisco il numero della pagina nell'istanza
       this.page = number;
+
+      // do come valore true al caricamento
       this.Loading = true;
 
+      // costante che prende la differenza 
       const diff = number - this.page_reduct[0];
 
+      // creo un array con il nuovo paginate
       const pages = this.page_reduct.map((num) => {
         return num + diff
       });
+
+      // prima vuoto il risultato
       this.page_reduct = null;
+
+      // poi salvo il nuovo paginate 
       this.page_reduct = pages;
 
+      // invoco la funzione
       this.callAPI();
 
     },
+
+    /**
+     * funzione che ti porta alla -pagina precedente
+     */
     prevPage() {
+
+      // diminuisco di 1 della pagina
       this.page--;
+
+      // do come valore true al caricamento
       this.Loading = true;
 
+      // creo un array con il nuovo paginate
       const pages = this.page_reduct.map((num) => {
         return num - 1;
       });
+
+      // prima vuoto il risultato
       this.page_reduct = null;
+
+      // poi salvo il nuovo paginate 
       this.page_reduct = pages;
+
+      // invoco la funzione
       this.callAPI();
-
-
     },
+
+    /**
+     * funzione che ti passa alla pagina dopo
+     */
     nextPage() {
+
+      // aumenta di 1
       this.page++;
+
+      // do come valore true al caricamento
       this.Loading = true;
 
+      // creo un array con il nuovo paginate
       const pages = this.page_reduct.map((num) => {
         return num + 1;
       });
-      console.log(pages)
+
+      // prima vuoto il risultato
       this.page_reduct = null;
+
+      // poi salvo il nuovo paginate 
       this.page_reduct = pages;
+
+      // invoco la funzione
       this.callAPI();
     },
-    getDebounce() {
-      setTimeout(() => {
 
+    /**
+     * funzione che parte se non inserisco niente dopo 7 secondi nell'input
+     */
+    getDebounce() {
+
+      // setto che dopo 7s invoco la funzione
+      setTimeout(() => {
         this.getGithub();
       }, 7000);
     }
@@ -123,32 +207,36 @@ export default {
 
 <template>
 
-
+  <!-- template quando non e in fase di caricamento -->
   <template v-if="this.Loading === false">
+
+
+    <!-- header -->
     <header>
       <nav class=" navbar navbar-expand-sm navbar-dark bg-dark px-2 justify-content-between">
+
+        <!-- logo -->
         <a class="navbar-brand" href="#">Github API</a>
 
 
         <form class="form-inline my-2 my-lg-0 d-flex align-items-center bg-white rounded-2" @submit.prevent>
 
+          <!-- input -->
           <div>
             <input type="text" class="form-control border-0" name="search" id="search" aria-describedby="helpId"
               placeholder="Cerca.." @keyup="getDebounce()" />
           </div>
 
+          <!-- select -->
           <div style="border-left: 1px solid gray;">
-
             <select class="form-select border-0" name="filter" id="filter">
-
               <option value="repositories">Cartelle</option>
               <option value="users">Utenti</option>
-
             </select>
           </div>
 
 
-
+          <!-- button -->
           <button class="bg-warning my-2 my-sm-0" type="submit"
             style="padding: 0.375rem 0.75rem; border: 1px solid gray; border-top-right-radius: 5px; border-bottom-right-radius: 5px;"
             @click="getGithub()">Search</button>
@@ -157,11 +245,13 @@ export default {
       </nav>
     </header>
 
+    <!-- main -->
     <main id="site_main">
 
       <div class="container px-4 py-5">
         <div class="row gap-2 justify-content-center" v-if="data.length >= 1">
 
+          <!-- se ci sono risultati -->
           <div class="card p-0" v-for="data in data" style="background-color: #efefef; max-width: 250px; width: 100%;">
             <div class="card_header">
               <div class="card_background">
@@ -178,7 +268,7 @@ export default {
               <h4 class="card-title" v-else>{{ data.login }}</h4>
 
               <p class="card-text" v-if="data.description">{{ data.description }}</p>
-              <p class="card-text" v-else>
+              <p class="card-text" v-if="data.type">
                 <strong>Profilo: </strong>
                 <span>{{ data.type }}</span>
               </p>
@@ -205,10 +295,13 @@ export default {
 
           </div>
         </div>
+
+        <!-- in caso non ci sono risultrati -->
         <div v-else>
           <span>Non esistono risultati</span>
         </div>
 
+        <!-- paginate -->
         <div class="paginate d-flex gap-2 mt-5 align-items-center" v-if="this.countpages > 1">
           <div class="paginate_arrow_left" v-if="this.page > 1" @click="prevPage">
             <i class="fa fa-arrow-left" aria-hidden="true"></i>
